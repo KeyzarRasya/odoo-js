@@ -8,6 +8,12 @@ interface Executable{
     apiKey: string;
 }
 
+interface Authentication{
+    type: string;
+    login: string;
+    password: string;
+}
+
 type SearchDomain = [string, string, any]
 
 class ModelExecutable {
@@ -146,6 +152,18 @@ export class Model {
         return this.request(`/json/2/${this.modelName}/search_read`, {
             method: "POST",
             body: JSON.stringify({domain: domains, fields: fields})
+        })
+    }
+
+    async authenticate(authentication: Authentication): Promise<any> {
+        return this.request(`/json/2/${this.modelName}/authenticate`, {
+            method: 'POST',
+            body: JSON.stringify({
+                ids: [],
+                context: {},
+                credential: authentication,
+                user_agent_env: {}
+            })
         })
     }
 
