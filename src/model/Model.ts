@@ -76,6 +76,15 @@ class ModelExecutable {
             })
         })
     }
+
+    async unlink(): Promise<void> {
+        return this.request(`/json/2/${this.executable.modelName}/unlink`, {
+            method: "POST",
+            body: JSON.stringify({
+                ids: [this.executable.id]
+            })
+        })
+    }
 }
 
 export class Model {
