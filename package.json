@@ -1,6 +1,6 @@
 {
   "name": "@keyzar/odoo-js",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "an Odoo Javascript Libraries for connecting to Odoo via Odoo JSON API",
   "keywords": [
     "odoo",
