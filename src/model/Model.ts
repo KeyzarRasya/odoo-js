@@ -85,6 +85,15 @@ class ModelExecutable {
             })
         })
     }
+
+    async action(actionName: string): Promise<void> {
+        return this.request(`/json/2/${this.executable.modelName}/${actionName}`, {
+            method: "POST",
+            body: JSON.stringify({
+                ids: [this.executable.id]
+            })
+        })
+    }
 }
 
 export class Model {
