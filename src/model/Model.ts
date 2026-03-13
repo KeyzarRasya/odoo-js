@@ -1,14 +1,14 @@
 import { error } from "console";
 import type { Odoo, OdooConfig } from "./Odoo";
 
-interface Executable{
+interface Executable {
     id: number;
     modelName: string;
     baseUrl: string;
     apiKey: string;
 }
 
-interface Authentication{
+interface Authentication {
     type: string;
     login: string;
     password: string;
@@ -18,8 +18,11 @@ type SearchDomain = [string, string, any]
 
 class ModelExecutable {
     private executable: Executable;
-    constructor(executable: Executable) {
+    private fetchImpl: typeof fetch;
+
+    constructor(executable: Executable, fetchImpl: typeof fetch) {
         this.executable = executable;
+        this.fetchImpl = fetchImpl;
     }
 
     private getHeaders(includeAuth: boolean): Record<string, string> {
@@ -36,7 +39,7 @@ class ModelExecutable {
         return headers;
     }
 
-    private async handleResponse(response: Response): Promise<void> {
+    private async handleResponse(response: Response): Promise<any> {
         if (!response.ok) {
             let err: any;
 
@@ -53,15 +56,15 @@ class ModelExecutable {
         return response.json()
     }
 
-    private async request(endpoint: string, options: any): Promise<void> {
+    private async request(endpoint: string, options: any): Promise<any> {
         try {
             let url: string = `${this.executable.baseUrl}${endpoint}`;
-            const response: Response = await fetch(url, {
+            const response: Response = await this.fetchImpl(url, {
                 ...options,
                 headers: this.getHeaders(options.includeAuth !== false)
             })
             return await this.handleResponse(response);
-        } catch(error) {
+        } catch (error) {
             console.error(`API ERROR: ${endpoint}`, error);
             throw error;
         }
@@ -99,10 +102,12 @@ class ModelExecutable {
 export class Model {
     private odooConfig: OdooConfig;
     private modelName: string;
+    private fetchImpl: typeof fetch;
 
-    constructor(odooConfiguration: OdooConfig, modelName: string) {
+    constructor(odooConfiguration: OdooConfig, modelName: string, fetchImpl: typeof fetch) {
         this.odooConfig = odooConfiguration;
         this.modelName = modelName;
+        this.fetchImpl = fetchImpl;
     }
 
     private getHeaders(includeAuth: boolean): Record<string, string> {
@@ -139,12 +144,12 @@ export class Model {
     private async request(endpoint: string, options: any): Promise<any> {
         try {
             let url: string = `${this.odooConfig.baseUrl}${endpoint}`;
-            const response: Response = await fetch(url, {
+            const response: Response = await this.fetchImpl(url, {
                 ...options,
                 headers: this.getHeaders(options.includeAuth !== false)
             })
             return await this.handleResponse(response);
-        } catch(error) {
+        } catch (error) {
             console.error(`API ERROR: ${endpoint}`, error);
             throw error;
         }
@@ -156,20 +161,20 @@ export class Model {
             modelName: this.modelName,
             baseUrl: this.odooConfig.baseUrl,
             apiKey: this.odooConfig.apiKey
-        });
+        }, this.fetchImpl);
     }
 
     async create(data: any): Promise<any> {
         return this.request(`/json/2/${this.modelName}/create`, {
             method: "POST",
-            body: JSON.stringify({vals_list: data})
+            body: JSON.stringify({ vals_list: data })
         });
     }
 
     async search_read(domains: SearchDomain[], fields: string[]): Promise<any> {
         return this.request(`/json/2/${this.modelName}/search_read`, {
             method: "POST",
-            body: JSON.stringify({domain: domains, fields: fields})
+            body: JSON.stringify({ domain: domains, fields: fields })
         })
     }
 
@@ -186,3 +191,4 @@ export class Model {
     }
 
 }
+

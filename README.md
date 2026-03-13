@@ -1,119 +1,131 @@
-# Odoo JS Connector
+# Odoo JS
 
-This is a lightweight JavaScript/TypeScript library for connecting to an Odoo instance via its JSON/2 endpoint. It provides a simple and intuitive API for interacting with your Odoo models.
+This is a JavaScript/TypeScript library for interacting with an Odoo instance through its JSON-RPC API. It provides a simple and intuitive way to perform CRUD operations and call methods on Odoo models.
 
 ## Installation
 
 ```bash
-npm install odoo-js-connector
+npm install odoo-js
 ```
 
 ## Usage
 
 ### Initialization
 
-First, you need to create an instance of the `Odoo` class with your Odoo configuration.
+First, you need to create an `Odoo` instance with your Odoo configuration.
 
 ```typescript
-import { Odoo } from 'odoo-js-connector';
+import { Odoo } from 'odoo-js';
 
 const odoo = new Odoo({
+  apiKey: 'YOUR_API_KEY', // Optional, if you use API Key for authentication
   baseUrl: 'https://your-odoo-instance.com',
-  apiKey: 'your-api-key'
 });
 ```
 
-### Creating records
+### Selecting a Model
 
-To create a new record for a model, you can use the `create` method on a `Model` instance.
+To interact with an Odoo model, you first need to select it using the `model()` method.
 
 ```typescript
-const model = odoo.model('res.partner');
-
-model.create({ name: 'New Partner' })
-  .then(result => {
-    console.log('Created record:', result);
-  })
-  .catch(error => {
-    console.error('Error creating record:', error);
-  });
+const ResPartner = odoo.model('res.partner');
 ```
 
-### Searching records
+### Creating a Record
 
-You can search for records using the `search_read` method. It takes a domain to filter the records and a list of fields to return.
+You can create a new record using the `create()` method. It accepts an array of objects with the data for the new records.
 
 ```typescript
-const model = odoo.model('res.partner');
+const newPartner = await ResPartner.create([
+  { name: 'John Doe', email: 'john.doe@example.com' },
+]);
 
-model.search_read([['is_company', '=', true]], ['name', 'email'])
-  .then(result => {
-    console.log('Found records:', result);
-  })
-  .catch(error => {
-    console.error('Error searching records:', error);
-  });
+console.log(newPartner);
 ```
 
-### Updating records
+### Searching for Records
 
-To update a record, you first need to get a `ModelExecutable` instance by calling the `id` method with the record's ID. Then you can use the `write` method to update the record.
+You can search for records using the `search_read()` method. It takes a domain to filter the records and a list of fields to return.
 
 ```typescript
-const model = odoo.model('res.partner');
+const partners = await ResPartner.search_read(
+  [['is_company', '=', true]],
+  ['name', 'email']
+);
 
-model.id(123).write({ name: 'Updated Partner Name' })
-  .then(() => {
-    console.log('Record updated successfully');
-  })
-  .catch(error => {
-    console.error('Error updating record:', error);
-  });
+console.log(partners);
+```
+
+### Updating a Record
+
+To update a record, you first need to get a `ModelExecutable` instance by calling the `id()` method with the record's ID. Then you can use the `write()` method.
+
+```typescript
+const partner = ResPartner.id(1);
+
+await partner.write({
+  name: 'Jane Doe',
+});
+```
+
+### Deleting a Record
+
+You can delete a record using the `unlink()` method on a `ModelExecutable` instance.
+
+```typescript
+const partner = ResPartner.id(1);
+
+await partner.unlink();
+```
+
+### Calling a Method on a Record
+
+You can call any method on a record using the `action()` method on a `ModelExecutable` instance.
+
+```typescript
+const partner = ResPartner.id(1);
+
+await partner.action('send_email');
+```
+
+### Authentication
+
+You can authenticate with a username and password using the `authenticate()` method.
+
+```typescript
+const session = await odoo.model('res.users').authenticate({
+    type: 'password',
+    login: 'admin',
+    password: 'password'
+})
+
+console.log(session)
 ```
 
 ## API Reference
 
-### `Odoo` class
+### `Odoo`
 
-#### `constructor(configuration: OdooConfig)`
+The main class to interact with Odoo.
 
-Creates a new `Odoo` instance.
+-   `constructor(config: OdooConfig)`: Creates a new `Odoo` instance.
+    -   `config.apiKey`: Your Odoo API key.
+    -   `config.baseUrl`: The base URL of your Odoo instance.
+-   `model(modelName: string): Model`: Returns a `Model` instance for the given model name.
 
-*   `configuration`: An object with the following properties:
-    *   `baseUrl`: The base URL of your Odoo instance.
-    *   `apiKey`: Your Odoo API key.
+### `Model`
 
-#### `model(modelName: string): Model`
+Represents an Odoo model.
 
-Returns a `Model` instance for the specified model.
+-   `id(id: number): ModelExecutable`: Returns a `ModelExecutable` instance for the given record ID.
+-   `create(data: any[]): Promise<any>`: Creates new records.
+-   `search_read(domains: SearchDomain[], fields: string[]): Promise<any>`: Searches for records.
+-   `authenticate(authentication: Authentication): Promise<any>`: Authenticates a user.
 
-*   `modelName`: The name of the Odoo model (e.g., `'res.partner'`).
+### `ModelExecutable`
 
-### `Model` class
+Represents a specific record in an Odoo model.
 
-#### `id(id: number): ModelExecutable`
-
-Returns a `ModelExecutable` instance for the record with the specified ID.
-
-*   `id`: The ID of the record.
-
-#### `create(data: any): Promise<any>`
-
-Creates a new record for the model.
-
-*   `data`: An object containing the values for the new record.
-
-#### `search_read(domains: SearchDomain[], fields: string[]): Promise<any>`
-
-Searches for records and returns the specified fields.
-
-*   `domains`: An array of domains to filter the records. A domain is an array of three elements: `[field, operator, value]`.
-*   `fields`: An array of field names to return for the found records.
-
-### `ModelExecutable` class
-
-#### `write(data: any): Promise<void>`
-
-Updates the record.
-
-*   `data`: An object containing the fields to update and their new values.
+-   `write(data: any): Promise<void>`: Updates the record.
+-   `unlink(): Promise<void>`: Deletes the record.
+-   `action(actionName: string): Promise<void>`: Calls a method on the record.
